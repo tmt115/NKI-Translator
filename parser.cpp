@@ -39,6 +39,28 @@ string parse_init(curr_line, line_num) {
     return "";
 }
 
+string parse_matmul(curr_line, line_num) {
+    regex matmul_stat_pe(R"((/w+) += matmul\((\w+), (\w+)\))");
+    regex matmul_stat_p(R"((/w+) = matmul\((\w+), (\w+)\))");
+    smatch match;
+    if (regex_search(curr_line, match, matmul_stat_pe)) {
+        string res_var = match[1];
+        string lhs = match[2];
+        string rhs = match[3];
+        string nmm = res_var + " += nl.matmul(" + lhs + ", " + rhs + ")";
+        return nmm
+    }
+    else if (regex_search(curr_line, match, matmul_stat_p)) {
+        string res_var = match[1];
+        string lhs = match[2];
+        string rhs = match[3];
+        string nmm = res_var + " += nl.matmul(" + lhs + ", " + rhs + ")";
+        return nmm
+    }
+    cerr << "Unparsable syntax at line " + to_string(line_num) + ": " + curr_line;
+    return "";
+}
+
 vector<string> parse_line(curr_line, line_num) {
     regex for_det("for");
     smatch match;
@@ -48,11 +70,18 @@ vector<string> parse_line(curr_line, line_num) {
         return vec;
     }
     regex zero_det("zeros");
-    if (regex_search(curr_line, match, zero_det)) {
+    else if (regex_search(curr_line, match, zero_det)) {
         string nz = parse_init(curr_line, line_num);
-        vector<string> vec = {nz, "zeros"}
+        vector<string> vec = {nz, "NI"}
         return vec;
     }
+    regex matmul_det("matmul");
+    else if (regex_search(curr_line, match, matmul_det)) {
+        string nmm = parse_matmul(curr_line, line_num);
+        vector<string> vec = {nmm, "NI"};
+        return vec;
+    }
+
 }
 
 int main(int argc, char * argv[]) {
